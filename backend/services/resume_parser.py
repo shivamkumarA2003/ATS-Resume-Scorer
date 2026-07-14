@@ -1,5 +1,5 @@
 import io
-import magic
+import filetype
 from typing import Tuple, Optional, Tuple
 
 import pdfplumber
@@ -41,9 +41,20 @@ def validate_file(file_data:bytes, filename:str)->Tuple[bool, str, Optional[str]
         return False, 'uploade file is empty...please check the file you have uploaded and try again'
     
     try:
-        mime_type=magic.from_buffer(file_data, mime=True)
+        kind = filetype.guess(file_data)
+        mime_type = kind.mime if kind is not None else None
     except Exception as e:
         return False, f"error deteminin the file type : {e}", None
+
+    if mime_type is None:
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        if ext == 'doc':
+            mime_type = 'application/msword'
+        else:
+            return False, (
+              f'Could not determine file type. '
+              f'Please upload one of: PDF, DOC, DOCX.'
+            ), None
     
     if mime_type not in SUPPORTED_MIME_TYPES:
         supported=', '.join(SUPPORTED_MIME_TYPES.keys()).upper()
